@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta de CEP</title>
+    <style>
+        /* Estilos simples para a página */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        .container {
+            text-align: center;
+        }
+        input[type="text"] {
+            padding: 8px;
+            margin-bottom: 16px;
+            width: 200px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        #address {
+            margin-top: 16px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Consulta de CEP</h1>
+        <input type="text" id="cepInput" placeholder="Digite o CEP">
+        <button onclick="buscarCEP()">Buscar</button>
+        <div id="address"></div>
+    </div>
+
+    <script>
+        function buscarCEP() {
+            var cep = document.getElementById('cepInput').value;
+            fetch('http://localhost:8080/?cep=' + cep)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById('address').innerHTML = '<p>' + data.error + '</p>';
+                    } else {
+                        document.getElementById('address').innerHTML = `
+                            <p>CEP: ${data.cep}</p>
+                            <p>Logradouro: ${data.logradouro}</p>
+                            <p>Complemento: ${data.complemento}</p>
+                            <p>Bairro: ${data.bairro}</p>
+                            <p>Localidade: ${data.localidade}</p>
+                            <p>UF: ${data.uf}</p>
+                            <p>IBGE: ${data.ibge}</p>
+                            <p>GIA: ${data.gia}</p>
+                            <p>DDD: ${data.ddd}</p>
+                            <p>SIAFI: ${data.siafi}</p>
+                        `;
+                    }
+                })
+                .catch(error => console.error('Erro:', error));
+        }
+    </script>
+</body>
+</html>
