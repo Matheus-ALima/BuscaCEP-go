@@ -27,6 +27,7 @@ func main() {
 
 // w vai receber a response http e r vai receber a request
 func BuscaCepHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	if r.URL.Path != "/" {
 		w.WriteHeader(http.StatusNotFound)
 		return
