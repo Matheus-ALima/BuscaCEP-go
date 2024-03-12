@@ -2,13 +2,10 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
-	"io"
+	"io/ioutil"
 	"net/http"
-	"os"
 )
 
-// estrutura json de CEP
 type Viacep struct {
 	Cep         string `json:"cep"`
 	Logradouro  string `json:"logradouro"`
@@ -23,33 +20,46 @@ type Viacep struct {
 }
 
 func main() {
-	//Loop para retornar o conteudo em um slice
-	for _, cep := range os.Args[1:] {
-		//realizando a requisição
-		req, err := http.Get("http://viacep.com.br/ws/" + cep + "/json/")
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Erro ao fazer a requisição: %v\n", err)
-		}
-		//defer para atrasar o fechamento do corpo da requisição
-		defer req.Body.Close()
-		//realizando a leitura do corpo da requisição
-		res, err := io.ReadAll(req.Body)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Erro ao ler o corpo da requisição: %v\n", err)
-		}
-		//Utilizando o Unmarshal para poder inserir valores dentro da memoria do json
-		var data Viacep
-		err = json.Unmarshal(res, &data)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Erro ao fazer parse da resposta %v\n", err)
-		}
-		//Criar um arquivo para salvar o conteudo buscado
-		arq, err := os.Create("cep.txt")
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Erro ao criar arquivo: %v\n", err)
-		}
-		defer arq.Close()
-		//escreve dentro do arquivo
-		_, err = arq.WriteString(fmt.Sprintf("CEP: %s, Localidade: %s, UF: %s", data.Cep, data.Localidade, data.Uf))
+	http.HandleFunc("/", BuscaCepHandler)
+	http.ListenAndServe(":8080", nil)
+
+}
+
+// w vai receber a response http e r vai receber a request
+func BuscaCepHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		w.WriteHeader(http.StatusNotFound)
+		return
 	}
+	cepParam := r.URL.Query().Get("cep")
+	if cepParam == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	cep, error := BuscaCep(cepParam)
+	if error != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(cep)
+}
+
+func BuscaCep(cep string) (*Viacep, error) {
+	res, error := http.Get("http://viacep.com.br/ws/" + cep + "/json/")
+	if error != nil {
+		return nil, error
+	}
+	defer res.Body.Close()
+	body, error := ioutil.ReadAll(res.Body)
+	if error != nil {
+		return nil, error
+	}
+	var c Viacep
+	error = json.Unmarshal(body, &c)
+	if error != nil {
+		return nil, error
+	}
+	return &c, nil
 }
